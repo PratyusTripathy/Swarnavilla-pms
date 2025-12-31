@@ -1,0 +1,19 @@
+directories:
+  output: release
+  buildResources: build
+appId: com.swarnavilla.pms
+productName: SwarnaPMS
+files:
+  - filter:
+      - dist/**/*
+      - main.js
+      - preload.js
+      - package.json
+win:
+  target: nsis
+  icon: public/vite.svg
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+electronVersion: 29.4.6
