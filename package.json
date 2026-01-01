@@ -1,59 +1,57 @@
 {
   "name": "swarna-pms",
-  "private": true,
-  "version": "1.0.0",
-  "main": "main.js",
-  "author": "Swarna Villa",
+  "productName": "Swarna Villa PMS",
+  "version": "2.0.0",  
   "description": "Property Management System for Swarna Villa",
+  "main": "main.js",
   "scripts": {
-    "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && cross-env ELECTRON_START_URL=http://localhost:5173 electron .\"",
+    "dev": "concurrently \"vite\" \"electron .\"",
     "build": "vite build",
-    "dist": "npm run build && electron-builder",
-    "rebuild": "electron-rebuild -f -w sqlite3"
+    "dist": "npm run build && electron-builder"
+  },
+  "keywords": [],
+  "author": "Swarna Villa",
+  "license": "ISC",
+  "dependencies": {
+    "electron-updater": "^6.1.4",
+    "html2pdf.js": "^0.10.1",
+    "nodemailer": "^6.9.7",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.10.3",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.0",
+    "concurrently": "^8.2.2",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "vite": "^5.0.0"
   },
   "build": {
     "appId": "com.swarnavilla.pms",
-    "productName": "SwarnaPMS",
+    "productName": "Swarna Villa PMS",
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "dist/**/*",
       "main.js",
       "preload.js",
+      "public/**/*",
       "package.json"
     ],
-    "directories": {
-      "output": "release"
-    },
     "win": {
       "target": "nsis",
-      "icon": "public/icon.png"
+      "icon": "public/Icon.PNG",
+      "requestedExecutionLevel": "asInvoker" 
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
+      "shortcutName": "Swarna Villa PMS",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     }
-  },
-  "dependencies": {
-    "html2pdf.js": "^0.10.1",
-    "nodemailer": "^6.9.13",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "sqlite3": "^5.1.7"
-  },
-  "devDependencies": {
-    "@electron/rebuild": "^3.6.0",
-    "@types/react": "^18.2.66",
-    "@types/react-dom": "^18.2.22",
-    "@vitejs/plugin-react": "^4.2.1",
-    "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3",
-    "electron": "^29.1.0",
-    "electron-builder": "^24.13.3",
-    "eslint": "^8.57.0",
-    "eslint-plugin-react": "^7.34.1",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.6",
-    "vite": "^5.2.0",
-    "wait-on": "^7.2.0"
   }
 }

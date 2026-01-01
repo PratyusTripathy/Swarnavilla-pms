@@ -2,18 +2,22 @@ directories:
   output: release
   buildResources: build
 appId: com.swarnavilla.pms
-productName: SwarnaPMS
+productName: Swarna Villa PMS
 files:
   - filter:
       - dist/**/*
       - main.js
       - preload.js
+      - public/**/*
       - package.json
 win:
   target: nsis
-  icon: public/vite.svg
+  icon: public/Icon.PNG
+  requestedExecutionLevel: asInvoker
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+  shortcutName: Swarna Villa PMS
   createDesktopShortcut: true
+  createStartMenuShortcut: true
 electronVersion: 29.4.6

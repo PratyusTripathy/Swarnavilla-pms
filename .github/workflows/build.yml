@@ -1,37 +1,39 @@
-name: Build/Release
+name: Build Swarna PMS v2
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
-  release:
+  build:
     runs-on: windows-latest
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v4  # Updated to v4
+        uses: actions/checkout@v4
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4 # Updated to v4
+      - name: Setup Node.js (LTS)
+        uses: actions/setup-node@v4
         with:
-          node-version: 20          # Updated to Node 20 (current standard)
+          node-version: 20
+          cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: |
+          npm ci
+          # Rebuild sqlite3 for Electron explicitly
+          npx electron-builder install-app-deps
 
-      - name: Rebuild Database Engine
-        run: npm run rebuild
+      - name: Build React App
+        run: npm run build
 
-      - name: Build Electron App
-        run: npm run dist
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Package Application (Dist)
+        run: npx electron-builder --win --publish never
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4 # FIXED: Updated to v4
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
         with:
-          name: SwarnaPMS-Setup
+          name: SwarnaPMS-v2-Installer
           path: release/*.exe
-          compression-level: 0 # Faster upload for large files
+          retention-days: 5
