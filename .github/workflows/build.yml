@@ -11,17 +11,16 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4  # Updated to v4
 
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4 # Updated to v4
         with:
-          node-version: 18
+          node-version: 20          # Updated to Node 20 (current standard)
 
       - name: Install Dependencies
         run: npm install
 
-      # This step rebuilds SQLite using GitHub's pre-installed tools
       - name: Rebuild Database Engine
         run: npm run rebuild
 
@@ -31,7 +30,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # FIXED: Updated to v4
         with:
           name: SwarnaPMS-Setup
           path: release/*.exe
+          compression-level: 0 # Faster upload for large files
