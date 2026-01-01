@@ -1,7 +1,7 @@
 {
   "name": "swarna-pms",
   "productName": "Swarna Villa PMS",
-  "version": "2.0.0",  
+  "version": "2.0.0",
   "description": "Property Management System for Swarna Villa",
   "main": "main.js",
   "scripts": {
@@ -13,13 +13,13 @@
   "author": "Swarna Villa",
   "license": "ISC",
   "dependencies": {
+    "better-sqlite3": "^12.5.0",
     "electron-updater": "^6.1.4",
     "html2pdf.js": "^0.10.1",
     "nodemailer": "^6.9.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "recharts": "^2.10.3",
-    "sqlite3": "^5.1.6"
+    "recharts": "^2.10.3"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",
@@ -44,7 +44,7 @@
     "win": {
       "target": "nsis",
       "icon": "public/Icon.PNG",
-      "requestedExecutionLevel": "asInvoker" 
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
       "oneClick": false,
