@@ -19,6 +19,11 @@ jobs:
           node-version: 20
           cache: 'npm'
 
+      # --- NEW STEP STARTS HERE ---
+      - name: Setup MSVC (C++ Build Tools)
+        uses: ilammy/msvc-dev-cmd@v1
+      # --- NEW STEP ENDS HERE ---
+
       - name: Install Dependencies
         run: npm install
 
@@ -26,6 +31,7 @@ jobs:
         run: npm run build
 
       - name: Package Application (Dist)
+        # Use npx to run electron-builder to ensure we use the local version
         run: npx electron-builder --win --publish never
 
       - name: Upload Installer
