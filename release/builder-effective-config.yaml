@@ -20,4 +20,4 @@ nsis:
   shortcutName: Swarna Villa PMS
   createDesktopShortcut: true
   createStartMenuShortcut: true
-electronVersion: 29.4.6
+electronVersion: 28.3.3
