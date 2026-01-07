@@ -20,6 +20,10 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   
+  // ✅ New States for View-Only & Search features
+  const [isViewOnly, setIsViewOnly] = useState(false);
+  const [autoSearch, setAutoSearch] = useState("");
+
   // Settings
   const [guestDocPath, setGuestDocPath] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
@@ -60,7 +64,37 @@ function App() {
     reload();
   };
 
-  // --- 📄 INVOICE GENERATION (HIGH RESOLUTION) ---
+  // ✅ 1. View Only Handler (Double Click)
+  // This locks the modal so no edits can occur
+  const handleViewBooking = (booking) => {
+      setEditingBooking(booking);
+      setIsViewOnly(true); // <--- LOCKS THE MODAL
+      setIsModalOpen(true);
+  };
+
+  // ✅ 2. Edit Handler (Pencil Button)
+  // This unlocks the modal for editing
+  const handleEditBooking = (booking) => {
+      setEditingBooking(booking);
+      setIsViewOnly(false); // <--- UNLOCKS THE MODAL
+      setIsModalOpen(true);
+  };
+
+  // ✅ 3. New Booking Handler
+  const handleNewBooking = () => {
+      setEditingBooking(null);
+      setIsViewOnly(false); // <--- UNLOCKED
+      setIsModalOpen(true);
+  };
+
+  // ✅ 4. Drill Down from Dashboard
+  const handleDrillDown = (sourceName) => {
+      setActiveTab('frontDesk');
+      setAutoSearch(sourceName);
+      toast(`Filtered by: ${sourceName}`, { icon: '🔍' });
+  };
+
+  // --- 📄 INVOICE GENERATION ---
   const getFileName = (b) => {
       const safeName = (b.name || 'Guest').replace(/\s/g, '_');
       const safeDate = b.checkIn ? b.checkIn.split('T')[0] : 'Date';
@@ -73,21 +107,13 @@ function App() {
       
       setTimeout(() => {
           const element = invoiceRef.current;
-          
-          // ✅ HIGH RESOLUTION SETTINGS
           const opt = {
               margin: 0, 
               filename: getFileName(booking),
-              image: { type: 'jpeg', quality: 1.0 }, // Max Quality
-              html2canvas: { 
-                  scale: 4, // 🚀 4x Scale = Crystal Clear Text
-                  useCORS: true, 
-                  letterRendering: true, // Better font kerning
-                  scrollY: 0
-              },
-              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } // A4 Format
+              image: { type: 'jpeg', quality: 1.0 }, 
+              html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollY: 0 },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
           };
-          
           html2pdf().set(opt).from(element).save();
       }, 500);
   };
@@ -102,15 +128,12 @@ function App() {
       setTimeout(async () => {
           try {
               const element = invoiceRef.current;
-              
-              // ✅ HIGH RESOLUTION SETTINGS FOR EMAIL
               const opt = { 
                   margin: 0, 
                   image: { type: 'jpeg', quality: 1.0 }, 
                   html2canvas: { scale: 4, useCORS: true, letterRendering: true }, 
                   jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
               };
-              
               const pdfBase64 = await html2pdf().set(opt).from(element).outputPdf('datauristring');
               
               const res = await window.api.sendEmail({
@@ -121,14 +144,9 @@ function App() {
                   fileName: getFileName(booking)
               });
 
-              if (res.success) {
-                  toast.success("Email Sent Successfully!", { id: toastId });
-              } else {
-                  toast.error("Email Failed: " + res.error, { id: toastId });
-              }
-          } catch (e) {
-              toast.error("Error generating PDF", { id: toastId });
-          }
+              if (res.success) toast.success("Email Sent Successfully!", { id: toastId });
+              else toast.error("Email Failed: " + res.error, { id: toastId });
+          } catch (e) { toast.error("Error generating PDF", { id: toastId }); }
       }, 1000);
   };
 
@@ -157,19 +175,34 @@ function App() {
           <>
             <div className="toolbar">
               <div className="page-header"><h2>Front Desk</h2><p className="subtitle">Manage bookings and guests</p></div>
-              <button className="btn-main" onClick={() => { setEditingBooking(null); setIsModalOpen(true); }}>+ New Booking</button>
+              <button className="btn-main" onClick={handleNewBooking}>+ New Booking</button>
             </div>
-            <BookingTable bookings={bookings} onEdit={(b)=>{setEditingBooking(b); setIsModalOpen(true);}} onDelete={handleDelete} onInvoice={handleInvoice} onEmail={handleEmail} />
+            
+            {/* ✅ UPDATED BOOKING TABLE: Passed onSearchUpdate to sync state */}
+            <BookingTable 
+                bookings={bookings} 
+                onEdit={handleEditBooking} 
+                onDelete={handleDelete} 
+                onInvoice={handleInvoice} 
+                onEmail={handleEmail} 
+                onView={handleViewBooking} 
+                initialSearch={autoSearch} 
+                onSearchUpdate={(val) => setAutoSearch(val)}
+            />
           </>
         )}
         
-        {activeTab === 'reports' && <DashboardStats stats={stats} />}
+        {activeTab === 'reports' && (
+            <DashboardStats 
+                stats={stats} 
+                bookings={bookings}
+                onDrillDown={handleDrillDown} 
+            />
+        )}
 
         {activeTab === 'settings' && (
           <div className="settings-container">
             <div className="page-header"><h2>System Settings</h2></div>
-            
-            {/* --- ROOM MANAGEMENT --- */}
             <div className="settings-card">
                 <h3 style={{color:'#1e293b', borderBottom:'none', marginBottom:'15px'}}>🏨 Room Management</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr auto', gap: '15px', alignItems: 'end', marginBottom: '25px' }}>
@@ -186,15 +219,10 @@ function App() {
                         <input type="number" style={{padding:'10px', borderRadius:'4px', border:'1px solid #e2e8f0'}} value={newRoom.rate} onChange={e => setNewRoom({...newRoom, rate:e.target.value})} />
                     </div>
                     <div style={{display:'flex', gap:'5px'}}>
-                        <button className="btn-main" onClick={handleSaveRoom} style={{ background:'#1e293b', color:'white', height:'38px', borderRadius:'4px', padding:'0 20px', letterSpacing:'1px' }}>
-                            {editingRoomNo ? 'UPDATE' : 'ADD'}
-                        </button>
-                        {editingRoomNo && (
-                            <button className="btn-action" onClick={() => { setEditingRoomNo(null); setNewRoom({room_no:'', room_type:'', rate:''}); }} style={{ height: '38px' }}>Cancel</button>
-                        )}
+                        <button className="btn-main" onClick={handleSaveRoom} style={{ background:'#1e293b', color:'white', height:'38px', borderRadius:'4px', padding:'0 20px', letterSpacing:'1px' }}>{editingRoomNo ? 'UPDATE' : 'ADD'}</button>
+                        {editingRoomNo && <button className="btn-action" onClick={() => { setEditingRoomNo(null); setNewRoom({room_no:'', room_type:'', rate:''}); }} style={{ height: '38px' }}>Cancel</button>}
                     </div>
                 </div>
-
                 <table style={{width:'100%', borderCollapse:'collapse'}}>
                     <thead>
                         <tr style={{borderBottom:'1px solid #f1f5f9'}}>
@@ -219,7 +247,6 @@ function App() {
                     </tbody>
                 </table>
             </div>
-            
             <div className="settings-card" style={{marginTop:'20px'}}>
               <h3>⚙️ Configuration</h3>
               <div className="input-group"><label>Guest Documents Path</label><div style={{ display: 'flex', gap: '10px' }}><input value={guestDocPath} readOnly style={{ flex: 1, background: '#f1f5f9' }} /><button className="btn-action" onClick={() => { const newPath = prompt("Enter new path:", guestDocPath); if(newPath) setGuestDocPath(newPath); }}>Change</button></div></div>
@@ -230,7 +257,16 @@ function App() {
         )}
       </main>
 
-      <BookingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} editingBooking={editingBooking} rateCard={rateCard} allBookings={bookings} onSave={handleSaveBooking} />
+      <BookingModal 
+        isOpen={isModalOpen} 
+        onClose={() => { setIsModalOpen(false); setAutoSearch(""); }} 
+        editingBooking={editingBooking} 
+        rateCard={rateCard} 
+        allBookings={bookings} 
+        onSave={handleSaveBooking} 
+        readOnly={isViewOnly} // ✅ Pass ReadOnly State
+      />
+
       {showLogin && <LoginModal onLogin={async (pwd) => { if(await window.api.checkPassword(pwd)) { setIsAdmin(true); setShowLogin(false); setActiveTab('settings'); } else toast.error("Invalid"); }} onCancel={() => setShowLogin(false)} />}
 
       {/* --- HIDDEN INVOICE TEMPLATE --- */}
@@ -252,9 +288,7 @@ function App() {
                             <p style={{margin:'4px 0', fontSize:'13px'}}><strong>Status:</strong> <span style={{color: printBooking.due > 0 ? '#DC2626' : '#16A34A'}}>{printBooking.due > 0 ? 'Unpaid' : 'Paid'}</span></p>
                         </div>
                     </div>
-                    
                     <div style={{borderBottom:'2px solid #D4AF37', marginBottom:'30px'}}></div>
-
                     <div style={{display:'flex', justifyContent:'space-between', padding:'25px', backgroundColor:'#fffbeb', border:'1px solid #fde68a', borderRadius:'4px', marginBottom:'30px'}}>
                         <div style={{width:'48%'}}>
                             <h3 style={{fontSize:'12px', color:'#D4AF37', textTransform:'uppercase', margin:'0 0 10px 0', borderBottom:'1px solid #fde68a', paddingBottom:'5px', display:'inline-block'}}>BILL TO</h3>
@@ -270,7 +304,6 @@ function App() {
                             <p style={{margin:'4px 0', fontSize:'14px'}}><strong>Total Nights:</strong> {printBooking.days}</p>
                         </div>
                     </div>
-
                     <table style={{width:'100%', borderCollapse:'collapse', marginBottom:'30px'}}>
                         <thead>
                             <tr style={{backgroundColor:'#1e293b'}}>
@@ -289,7 +322,6 @@ function App() {
                             </tr>
                         </tbody>
                     </table>
-
                     <div style={{display:'flex', justifyContent:'flex-end', marginBottom:'40px'}}>
                         <table style={{width:'300px'}}>
                             <tbody>
@@ -308,7 +340,6 @@ function App() {
                             </tbody>
                         </table>
                     </div>
-
                     <div style={{textAlign:'center', borderTop:'1px solid #e2e8f0', paddingTop:'20px', color:'#94a3b8', fontSize:'11px', fontStyle:'italic'}}>
                         <p style={{marginBottom:'4px'}}><strong>Terms & Conditions:</strong> Check-out time is 11:00 AM. Payment is due upon presentation.</p>
                         <p style={{margin:'0'}}>This is a computer-generated invoice and does not require a signature.</p>

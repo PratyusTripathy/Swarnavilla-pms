@@ -1,8 +1,8 @@
 {
   "name": "swarna-pms",
   "productName": "Swarna Villa PMS",
-  "version": "2.0.0",
-  "description": "Property Management System for Swarna Villa",
+  "version": "2.3.0",
+  "description": "Property Management System for Swarna Villa - Enhanced Reports & Exports",
   "main": "main.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"electron .\"",
@@ -23,7 +23,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.6.0",
-    "recharts": "^2.15.4"
+    "recharts": "^2.15.4",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",

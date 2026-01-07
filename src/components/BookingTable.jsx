@@ -1,35 +1,64 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 
 const ITEMS_PER_PAGE = 10;
 
-export default function BookingTable({ bookings, onEdit, onDelete, onInvoice, onEmail }) {
-    const [searchTerm, setSearchTerm] = useState("");
+// ✅ Added onSearchUpdate to props
+export default function BookingTable({ bookings, onEdit, onDelete, onInvoice, onEmail, onView, initialSearch = "", onSearchUpdate }) {
+    const [searchTerm, setSearchTerm] = useState(initialSearch);
+    const [debouncedSearch, setDebouncedSearch] = useState(initialSearch); 
     const [currentPage, setCurrentPage] = useState(1);
-    const [filteredData, setFilteredData] = useState([]);
 
-    // Filter Logic
+    // Sync local state if parent updates initialSearch (e.g. Dashboard Drill-down)
     useEffect(() => {
-        if (!bookings) return;
-        let result = bookings;
-        if (searchTerm) {
-            const lower = searchTerm.toLowerCase();
-            result = bookings.filter(b => 
+        setSearchTerm(initialSearch);
+        setDebouncedSearch(initialSearch);
+    }, [initialSearch]);
+
+    // Debounce Logic
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    // Pagination Reset
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedSearch]);
+
+    // --- HANDLER FOR INPUT CHANGE ---
+    const handleSearchChange = (e) => {
+        const val = e.target.value;
+        setSearchTerm(val);
+        
+        // ✅ Notify Parent (App.jsx) immediately so it doesn't hold onto old values
+        if (onSearchUpdate) {
+            onSearchUpdate(val);
+        }
+    };
+
+    const processedData = useMemo(() => {
+        if (!bookings) return [];
+        let data = [...bookings].sort((a, b) => b.id - a.id);
+
+        if (debouncedSearch) {
+            const lower = debouncedSearch.toLowerCase();
+            data = data.filter(b => 
                 (b.name || '').toLowerCase().includes(lower) || 
-                (b.mobile || '').includes(searchTerm) || 
-                (b.room || '').includes(searchTerm)
+                (b.mobile || '').includes(debouncedSearch) || 
+                (b.room || '').includes(debouncedSearch) ||
+                (b.refBy || '').toLowerCase().includes(lower)
             );
         }
-        setFilteredData(result);
-        setCurrentPage(1); 
-    }, [searchTerm, bookings]);
+        return data;
+    }, [bookings, debouncedSearch]);
 
-    // Pagination Logic
     const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
     const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
-    const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+    const currentItems = processedData.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(processedData.length / ITEMS_PER_PAGE);
 
-    // Date Formatter (DD Mon, HH:MM)
     const formatDate = (isoString) => {
         if (!isoString) return "-";
         return new Date(isoString).toLocaleString('en-IN', {
@@ -39,18 +68,19 @@ export default function BookingTable({ bookings, onEdit, onDelete, onInvoice, on
 
     return (
         <div className="table-card">
-            {/* Search Bar */}
-            <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0' }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <input 
                     className="search-input" 
-                    placeholder="🔍 Search guest, mobile, or room..." 
+                    placeholder="🔍 Search guest, mobile, room, or source..." 
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange} // ✅ Use the new handler
                     style={{ width: '100%', maxWidth: '400px' }}
                 />
+                <span style={{fontSize: '0.85rem', color: '#64748b'}}>
+                    Showing {currentItems.length} of {processedData.length} bookings
+                </span>
             </div>
 
-            {/* Table */}
             <table>
                 <thead>
                     <tr>
@@ -65,7 +95,12 @@ export default function BookingTable({ bookings, onEdit, onDelete, onInvoice, on
                 <tbody>
                     {currentItems.length > 0 ? (
                         currentItems.map(b => (
-                            <tr key={b.id}>
+                            <tr 
+                                key={b.id} 
+                                onDoubleClick={() => onView && onView(b)} 
+                                style={{cursor: 'pointer'}} 
+                                title="Double click to View Details"
+                            >
                                 <td><span className="badge">{b.room}</span></td>
                                 <td style={{ fontWeight: '500' }}>
                                     {b.name}
@@ -79,11 +114,10 @@ export default function BookingTable({ bookings, onEdit, onDelete, onInvoice, on
                                         : <span className="badge-success">Paid</span>}
                                 </td>
                                 <td className="action-buttons" style={{ justifyContent: 'center' }}>
-                                    <button className="btn-action" onClick={() => onInvoice(b)} title="Invoice">⬇️</button>
-                                    <button className="btn-action" onClick={() => onEmail(b)} title="Email">✉️</button>
-                                    {/* Edit button now serves as View/Edit/Checkout */}
-                                    <button className="btn-action" onClick={() => onEdit(b)} title="Edit / Checkout">✏️</button>
-                                    <button className="btn-action btn-del" onClick={() => onDelete(b.id)} title="Delete">🗑️</button>
+                                    <button className="btn-action" onClick={(e) => { e.stopPropagation(); onInvoice(b); }} title="Invoice">⬇️</button>
+                                    <button className="btn-action" onClick={(e) => { e.stopPropagation(); onEmail(b); }} title="Email">✉️</button>
+                                    <button className="btn-action" onClick={(e) => { e.stopPropagation(); onEdit(b); }} title="Edit">✏️</button>
+                                    <button className="btn-action btn-del" onClick={(e) => { e.stopPropagation(); onDelete(b.id); }} title="Delete">🗑️</button>
                                 </td>
                             </tr>
                         ))
@@ -97,19 +131,22 @@ export default function BookingTable({ bookings, onEdit, onDelete, onInvoice, on
                 </tbody>
             </table>
 
-            {/* Pagination Controls */}
             {totalPages > 1 && (
                 <div className="pagination">
                     <button 
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
                         disabled={currentPage === 1}
+                        style={{opacity: currentPage === 1 ? 0.5 : 1}}
                     >
                         Prev
                     </button>
-                    <span>Page {currentPage} of {totalPages}</span>
+                    <span style={{fontSize:'0.9rem', color:'#475569', fontWeight:'500'}}>
+                        Page {currentPage} of {totalPages}
+                    </span>
                     <button 
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
                         disabled={currentPage === totalPages}
+                        style={{opacity: currentPage === totalPages ? 0.5 : 1}}
                     >
                         Next
                     </button>
