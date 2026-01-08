@@ -1,7 +1,7 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron'); //
 
 contextBridge.exposeInMainWorld('api', {
-  // --- CONFIG & AUTH (These were missing!) ---
+  // --- CONFIG & AUTH ---
   getConfig: () => ipcRenderer.invoke('get-config'),
   checkPassword: (password) => ipcRenderer.invoke('check-password', password),
   changePassword: (newPassword) => ipcRenderer.invoke('change-password', newPassword),
@@ -23,5 +23,14 @@ contextBridge.exposeInMainWorld('api', {
   getDashboardStats: () => ipcRenderer.invoke('get-dashboard-stats'),
 
   // --- EMAIL ---
-  sendEmail: (data) => ipcRenderer.invoke('send-email', data)
+  sendEmail: (data) => ipcRenderer.invoke('send-email', data),
+  // --- BACKUP & EXPORT ---
+  backupSystem: () => ipcRenderer.invoke('backup-system'),
+  exportData: (format) => ipcRenderer.invoke('export-data', format),
+  
+  // --- OTA SYNC ---
+  syncOTA: () => ipcRenderer.invoke('sync-ota-bookings'),
+
+  // --- ✅ NAVIGATION (Connects Menu Bar to React) ---
+  onNavigate: (callback) => ipcRenderer.on('navigate-to', (event, route) => callback(route))
 });
